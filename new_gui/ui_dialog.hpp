@@ -21,6 +21,7 @@
 #include <QtWidgets/QStackedWidget>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
+#include "device_chooser.hpp"
 #include "device_selector.hpp"
 
 QT_BEGIN_NAMESPACE
@@ -41,9 +42,9 @@ public:
     QWidget *page_0;
     QFormLayout *formLayout_2;
     QLabel *label_3;
-    QComboBox *input_devices;
+    PwIODeviceChooser *input_devices;
     QLabel *label_4;
-    QComboBox *output_devices;
+    PwIODeviceChooser *output_devices;
     QWidget *page_1;
     QVBoxLayout *verticalLayout_2;
     PwIODeviceSelector *inputs;
@@ -73,6 +74,8 @@ public:
         bufferSize->addItem(QString::fromUtf8("1024"));
         bufferSize->addItem(QString::fromUtf8("2024"));
         bufferSize->setObjectName(QString::fromUtf8("bufferSize"));
+        bufferSize->setFocusPolicy(Qt::StrongFocus);
+        bufferSize->setInputMethodHints(Qt::ImhDigitsOnly);
         bufferSize->setEditable(true);
         bufferSize->setCurrentText(QString::fromUtf8("256"));
         bufferSize->setPlaceholderText(QString::fromUtf8(""));
@@ -111,7 +114,7 @@ public:
 
         formLayout_2->setWidget(0, QFormLayout::LabelRole, label_3);
 
-        input_devices = new QComboBox(page_0);
+        input_devices = new PwIODeviceChooser(page_0);
         input_devices->addItem(QString());
         input_devices->setObjectName(QString::fromUtf8("input_devices"));
 
@@ -122,7 +125,7 @@ public:
 
         formLayout_2->setWidget(1, QFormLayout::LabelRole, label_4);
 
-        output_devices = new QComboBox(page_0);
+        output_devices = new PwIODeviceChooser(page_0);
         output_devices->addItem(QString());
         output_devices->setObjectName(QString::fromUtf8("output_devices"));
 
@@ -155,7 +158,6 @@ public:
 
         buttonBox = new QDialogButtonBox(PwAsioDialog);
         buttonBox->setObjectName(QString::fromUtf8("buttonBox"));
-        buttonBox->setOrientation(Qt::Horizontal);
         buttonBox->setStandardButtons(QDialogButtonBox::Cancel|QDialogButtonBox::Ok);
 
         verticalLayout_3->addWidget(buttonBox);
@@ -164,6 +166,13 @@ public:
         retranslateUi(PwAsioDialog);
         QObject::connect(buttonBox, SIGNAL(accepted()), PwAsioDialog, SLOT(accept()));
         QObject::connect(buttonBox, SIGNAL(rejected()), PwAsioDialog, SLOT(reject()));
+        QObject::connect(bufferSize, SIGNAL(activated(QString)), PwAsioDialog, SLOT(bufferSizeSet(QString)));
+        QObject::connect(input_devices, SIGNAL(activated(int)), PwAsioDialog, SLOT(inputDeviceSelected(int)));
+        QObject::connect(output_devices, SIGNAL(activated(int)), PwAsioDialog, SLOT(outputDeviceSelected(int)));
+        QObject::connect(input_devices, SIGNAL(listOpened()), PwAsioDialog, SLOT(inputSelectorOpened()));
+        QObject::connect(input_devices, SIGNAL(listClosed()), PwAsioDialog, SLOT(inputSelectorClosed()));
+        QObject::connect(output_devices, SIGNAL(listOpened()), PwAsioDialog, SLOT(outputSelectorOpened()));
+        QObject::connect(output_devices, SIGNAL(listClosed()), PwAsioDialog, SLOT(outputSelectorClosed()));
 
         io_config->setCurrentIndex(0);
 

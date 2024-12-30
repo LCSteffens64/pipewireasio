@@ -207,6 +207,7 @@ Portions copyright (C) 2010 Nedko Arnaudov
 Portions copyright (C) 2011 Christian Schoenebeck  
 Portions copyright (C) 2013 Joakim Hernberg  
 Portions copyright (C) 2020-2023 Filipe Coelho  
+Portions copyright (C) 2024 Dawid Kraiński  
 
 The WineASIO library code is licensed under LGPL v2.1, see COPYING.LIB for more details.  
-The WineASIO settings UI code is licensed under GPL v2+, see COPYING.GUI for more details.  
+The PipeWireASIO new settings UI code is licensed under GPL v2+, see COPYING.GUI for more details.  

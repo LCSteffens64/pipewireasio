@@ -15,6 +15,7 @@ class PwIODeviceSelector: public QGroupBox {
 
 	public:
 	PwIODeviceSelector(QWidget *parent);
+	~PwIODeviceSelector() override;
 
 	PwIODeviceKind deviceKind = PwIODeviceKind::Input;
 
