@@ -502,9 +502,7 @@ static LONG recursive_delete_keyW(HKEY base, WCHAR const *name)
 /***********************************************************************
  *		coclass list
  */
-// {48D0C522-BFCC-45cc-8B84-17F25F33E6E8}
-static GUID const CLSID_WineASIO = {
-0x48d0c522, 0xbfcc, 0x45cc, { 0x8b, 0x84, 0x17, 0xf2, 0x5f, 0x33, 0xe6, 0xe8 } };
+#include "driver_clsid.h"
 
 static struct regsvr_coclass const coclass_list[] = {
     {   &CLSID_WineASIO,
@@ -535,7 +533,7 @@ static HRESULT register_driver(void)
 {
     LPCSTR asio_key = "Software\\ASIO\\WineASIO";
     LPCSTR clsid = "CLSID";
-    LPCSTR wine_clsid = "{48D0C522-BFCC-45CC-8B84-17F25F33E6E8}";
+    LPCSTR wine_clsid = CLSID_WineASIO_STRING;
     LPCSTR desc = "Description";
     LPCSTR wine_desc = "WineASIO Driver";
     HKEY key;

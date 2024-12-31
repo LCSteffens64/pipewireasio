@@ -33,6 +33,8 @@
 #include <jack/jack.h>
 #include <jack/thread.h>
 
+#include "driver_clsid.h"
+
 #ifdef DEBUG
 #include "wine/debug.h"
 #else
@@ -269,10 +271,6 @@ static  VOID    configure_driver(IWineASIOImpl *This);
 
 static DWORD WINAPI jack_thread_creator_helper(LPVOID arg);
 static int          jack_thread_creator(pthread_t* thread_id, const pthread_attr_t* attr, void *(*function)(void*), void* arg);
-
-/* {48D0C522-BFCC-45cc-8B84-17F25F33E6E8} */
-static GUID const CLSID_WineASIO = {
-0x48d0c522, 0xbfcc, 0x45cc, { 0x8b, 0x84, 0x17, 0xf2, 0x5f, 0x33, 0xe6, 0xe8 } };
 
 static const IWineASIOVtbl WineASIO_Vtbl =
 {

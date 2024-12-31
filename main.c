@@ -25,14 +25,13 @@
 #include "objbase.h"
 #include "unknwn.h"
 
+#include "driver_clsid.h"
+
 #ifdef DEBUG
 #include "wine/debug.h"
 #endif
 /* WINE_DEFAULT_DEBUG_CHANNEL(asio); */
 
-/* {48D0C522-BFCC-45cc-8B84-17F25F33E6E8} */
-static GUID const CLSID_WineASIO = {
-0x48d0c522, 0xbfcc, 0x45cc, { 0x8b, 0x84, 0x17, 0xf2, 0x5f, 0x33, 0xe6, 0xe8 } };
 
 typedef struct {
     const IClassFactoryVtbl * lpVtbl;
