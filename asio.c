@@ -36,18 +36,18 @@
 #include "driver_clsid.h"
 
 #ifdef DEBUG
-#include "wine/debug.h"
+#include <wine/debug.h>
 #else
 #define TRACE(...) {}
 #define WARN(fmt, ...) {} fprintf(stdout, fmt, ##__VA_ARGS__)
 #define ERR(fmt, ...) {} fprintf(stderr, fmt, ##__VA_ARGS__)
 #endif
 
-#include "objbase.h"
-#include "mmsystem.h"
-#include "winreg.h"
+#include <objbase.h>
+#include <mmsystem.h>
+#include <winreg.h>
 #ifdef WINE_WITH_UNICODE
-#include "wine/unicode.h"
+#include <wine/unicode.h>
 #endif
 
 #define IEEE754_64FLOAT 1
@@ -1378,22 +1378,13 @@ static VOID configure_driver(IWineASIOImpl *This)
     char    environment_variable[MAX_ENVIRONMENT_SIZE];
 
     /* Unicode strings used for the registry */
-    static const WCHAR key_software_wine_wineasio[] =
-        { 'S','o','f','t','w','a','r','e','\\',
-          'W','i','n','e','\\',
-          'W','i','n','e','A','S','I','O',0 };
-    static const WCHAR value_wineasio_number_inputs[] =
-        { 'N','u','m','b','e','r',' ','o','f',' ','i','n','p','u','t','s',0 };
-    static const WCHAR value_wineasio_number_outputs[] =
-        { 'N','u','m','b','e','r',' ','o','f',' ','o','u','t','p','u','t','s',0 };
-    static const WCHAR value_wineasio_fixed_buffersize[] =
-        { 'F','i','x','e','d',' ','b','u','f','f','e','r','s','i','z','e',0 };
-    static const WCHAR value_wineasio_preferred_buffersize[] =
-        { 'P','r','e','f','e','r','r','e','d',' ','b','u','f','f','e','r','s','i','z','e',0 };
-    static const WCHAR wineasio_autostart_server[] =
-        { 'A','u','t','o','s','t','a','r','t',' ','s','e','r','v','e','r',0 };
-    static const WCHAR value_wineasio_connect_to_hardware[] =
-        { 'C','o','n','n','e','c','t',' ','t','o',' ','h','a','r','d','w','a','r','e',0 };
+    static const WCHAR key_software_wine_wineasio[] = u"Software\\Wine\\WineASIO";
+    static const WCHAR value_wineasio_number_inputs[] = u"Number of inputs";
+    static const WCHAR value_wineasio_number_outputs[] = u"Number of outputs";
+    static const WCHAR value_wineasio_fixed_buffersize[] = u"Fixed buffersize";
+    static const WCHAR value_wineasio_preferred_buffersize[] = u"Preferred buffersize";
+    static const WCHAR wineasio_autostart_server[] = u"Autostart server";
+    static const WCHAR value_wineasio_connect_to_hardware[] = u"Connect to hardware";
 
     /* Initialise most member variables,
      * asio_sample_position, asio_time, & asio_time_stamp are initialized in Start()
@@ -1523,7 +1514,7 @@ static VOID configure_driver(IWineASIOImpl *This)
     *application_name = 0;
     application_name = strrchrW(application_path, L'\\');
     application_name++;
-    WideCharToMultiByte(CP_ACP, WC_SEPCHARS, application_name, -1, This->jack_client_name, ASIO_MAX_NAME_LENGTH, NULL, NULL);
+    WideCharToMultiByte(CP_UTF8, WC_SEPCHARS, application_name, -1, This->jack_client_name, ASIO_MAX_NAME_LENGTH, NULL, NULL);
 
     RegCloseKey(hkey);
 
