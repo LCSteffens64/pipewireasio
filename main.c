@@ -18,12 +18,12 @@
 
 #include <stdarg.h>
 
-#include "windef.h"
-#include "winbase.h"
-#include "winuser.h"
-#include "winreg.h"
-#include "objbase.h"
-#include "unknwn.h"
+#include <windef.h>
+#include <winbase.h>
+#include <winuser.h>
+#include <winreg.h>
+#include <objbase.h>
+#include <unknwn.h>
 
 #include "driver_clsid.h"
 

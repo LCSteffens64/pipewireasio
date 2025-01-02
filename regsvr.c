@@ -23,14 +23,14 @@
 
 #define NONAMELESSSTRUCT
 #define NONAMELESSUNION
-#include "windef.h"
-#include "winbase.h"
-#include "winuser.h"
-#include "winreg.h"
-#include "objbase.h"
+#include <windef.h>
+#include <winbase.h>
+#include <winuser.h>
+#include <winreg.h>
+#include <objbase.h>
 
 #ifdef DEBUG
-#include "wine/debug.h"
+#include <wine/debug.h>
 #endif
 
 /* WINE_DEFAULT_DEBUG_CHANNEL(asio); */
@@ -74,35 +74,17 @@ static HRESULT unregister_coclasses(struct regsvr_coclass const *list);
 /***********************************************************************
  *		static string constants
  */
-static WCHAR const interface_keyname[10] = {
-    'I', 'n', 't', 'e', 'r', 'f', 'a', 'c', 'e', 0 };
-static WCHAR const base_ifa_keyname[14] = {
-    'B', 'a', 's', 'e', 'I', 'n', 't', 'e', 'r', 'f', 'a', 'c',
-    'e', 0 };
-static WCHAR const num_methods_keyname[11] = {
-    'N', 'u', 'm', 'M', 'e', 't', 'h', 'o', 'd', 's', 0 };
-static WCHAR const ps_clsid_keyname[15] = {
-    'P', 'r', 'o', 'x', 'y', 'S', 't', 'u', 'b', 'C', 'l', 's',
-    'i', 'd', 0 };
-static WCHAR const ps_clsid32_keyname[17] = {
-    'P', 'r', 'o', 'x', 'y', 'S', 't', 'u', 'b', 'C', 'l', 's',
-    'i', 'd', '3', '2', 0 };
-static WCHAR const clsid_keyname[6] = {
-    'C', 'L', 'S', 'I', 'D', 0 };
-static WCHAR const curver_keyname[7] = {
-    'C', 'u', 'r', 'V', 'e', 'r', 0 };
-static WCHAR const ips_keyname[13] = {
-    'I', 'n', 'P', 'r', 'o', 'c', 'S', 'e', 'r', 'v', 'e', 'r',
-    0 };
-static WCHAR const ips32_keyname[15] = {
-    'I', 'n', 'P', 'r', 'o', 'c', 'S', 'e', 'r', 'v', 'e', 'r',
-    '3', '2', 0 };
-static WCHAR const progid_keyname[7] = {
-    'P', 'r', 'o', 'g', 'I', 'D', 0 };
-static WCHAR const viprogid_keyname[25] = {
-    'V', 'e', 'r', 's', 'i', 'o', 'n', 'I', 'n', 'd', 'e', 'p',
-    'e', 'n', 'd', 'e', 'n', 't', 'P', 'r', 'o', 'g', 'I', 'D',
-    0 };
+static WCHAR const interface_keyname[10] = u"Interface";
+static WCHAR const base_ifa_keyname[14] = u"BaseInterface";
+static WCHAR const num_methods_keyname[11] = u"NumMethods";
+static WCHAR const ps_clsid_keyname[15] = u"ProxyStubClsid";
+static WCHAR const ps_clsid32_keyname[17] = u"ProxyStubClsid32";
+static WCHAR const clsid_keyname[6] = u"CLSID";
+static WCHAR const curver_keyname[7] = u"CurVer";
+static WCHAR const ips_keyname[13] = u"InProcServer";
+static WCHAR const ips32_keyname[15] = u"InProcServer32";
+static WCHAR const progid_keyname[7] = u"ProgID";
+static WCHAR const viprogid_keyname[25] = u"VersionIndependentProgID";
 static char const tmodel_valuename[] = "ThreadingModel";
 
 /***********************************************************************
@@ -154,14 +136,13 @@ static HRESULT register_interfaces(struct regsvr_interface const *list)
 	}
 
 	if (0 <= list->num_methods) {
-	    static WCHAR const fmt[3] = { '%', 'd', 0 };
 	    HKEY key;
 
 	    res = RegCreateKeyExW(iid_key, num_methods_keyname, 0, NULL, 0,
 				  KEY_READ | KEY_WRITE, NULL, &key, NULL);
 	    if (res != ERROR_SUCCESS) goto error_close_iid_key;
 
-	    wsprintfW(buf, fmt, list->num_methods);
+	    wsprintfW(buf, u"%d", list->num_methods);
 	    res = RegSetValueExW(key, NULL, 0, REG_SZ,
 				 (const BYTE*)buf,
 				 (lstrlenW(buf) + 1) * sizeof(WCHAR));
@@ -526,30 +507,31 @@ static struct regsvr_interface const interface_list[] = {
     { NULL }			/* list terminator */
 };
 
+static WCHAR const asio_key[] = u"Software\\ASIO\\WineASIO";
+
 /***********************************************************************
  *		register driver
  */
 static HRESULT register_driver(void)
 {
-    LPCSTR asio_key = "Software\\ASIO\\WineASIO";
-    LPCSTR clsid = "CLSID";
-    LPCSTR wine_clsid = CLSID_WineASIO_STRING;
-    LPCSTR desc = "Description";
-    LPCSTR wine_desc = "WineASIO Driver";
+    LPWSTR clsid = u"CLSID";
+    static WCHAR const wine_clsid[] = CLSID_WineASIO_STRING(u);
+    LPWSTR desc = u"Description";
+    static WCHAR const wine_desc[] = u"WineASIO Driver";
     HKEY key;
     LONG rc;
 
-    rc = RegOpenKeyExA(HKEY_LOCAL_MACHINE, asio_key, 0, KEY_READ | KEY_WRITE, &key);
+    rc = RegOpenKeyExW(HKEY_LOCAL_MACHINE, asio_key, 0, KEY_READ | KEY_WRITE, &key);
 
     if (rc != ERROR_SUCCESS)
-        rc = RegCreateKeyExA(HKEY_LOCAL_MACHINE, asio_key, 0, NULL, 0, KEY_READ | KEY_WRITE, NULL, &key, 0);
+        rc = RegCreateKeyExW(HKEY_LOCAL_MACHINE, asio_key, 0, NULL, 0, KEY_READ | KEY_WRITE, NULL, &key, 0);
 
     if (rc == ERROR_SUCCESS)
     {
-        rc = RegSetValueExA(key, clsid, 0, REG_SZ, (const BYTE *)wine_clsid, strlen(wine_clsid) + 1);
+        rc = RegSetValueExW(key, clsid, 0, REG_SZ, (const BYTE *)wine_clsid, sizeof(wine_clsid));
 
         if (rc == ERROR_SUCCESS)
-            rc = RegSetValueExA(key, desc, 0, REG_SZ, (const BYTE *)wine_desc, strlen(wine_desc) + 1);
+            rc = RegSetValueExW(key, desc, 0, REG_SZ, (const BYTE *)wine_desc, sizeof(wine_desc));
 
         RegCloseKey(key);
     }
@@ -581,10 +563,8 @@ HRESULT WINAPI DllRegisterServer(void)
  */
 static HRESULT unregister_driver(void)
 {
-    LPCSTR asio_key = "Software\\ASIO\\WineASIO";
-
     /* FIXME */
-    return recursive_delete_keyA(HKEY_LOCAL_MACHINE, asio_key);
+    return recursive_delete_keyW(HKEY_LOCAL_MACHINE, asio_key);
 }
 
 /***********************************************************************
