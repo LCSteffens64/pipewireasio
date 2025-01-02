@@ -486,14 +486,10 @@ static LONG recursive_delete_keyW(HKEY base, WCHAR const *name)
 #include "driver_clsid.h"
 
 static struct regsvr_coclass const coclass_list[] = {
-    {   &CLSID_WineASIO,
-	"WineASIO Object",
+    {   &CLSID_PipeWireASIO,
+	"PipeWireASIO Object",
 	NULL,
-#ifdef NATIVE_INT64
-	"wineasio64.dll",
-#else
-	"wineasio32.dll",
-#endif
+	DRIVER_DLL,
 	"Apartment"
     },
     { NULL }			/* list terminator */
@@ -507,17 +503,15 @@ static struct regsvr_interface const interface_list[] = {
     { NULL }			/* list terminator */
 };
 
-static WCHAR const asio_key[] = u"Software\\ASIO\\WineASIO";
+static WCHAR const asio_key[] = u"Software\\ASIO\\PipeWireASIO";
 
 /***********************************************************************
  *		register driver
  */
 static HRESULT register_driver(void)
 {
-    LPWSTR clsid = u"CLSID";
-    static WCHAR const wine_clsid[] = CLSID_WineASIO_STRING(u);
-    LPWSTR desc = u"Description";
-    static WCHAR const wine_desc[] = u"WineASIO Driver";
+    static WCHAR const wine_clsid[] = CLSID_PipeWireASIO_STRING(u);
+    static WCHAR const wine_desc[] = u"PipeWireASIO Driver";
     HKEY key;
     LONG rc;
 
@@ -528,10 +522,10 @@ static HRESULT register_driver(void)
 
     if (rc == ERROR_SUCCESS)
     {
-        rc = RegSetValueExW(key, clsid, 0, REG_SZ, (const BYTE *)wine_clsid, sizeof(wine_clsid));
+        rc = RegSetValueExW(key, u"CLSID", 0, REG_SZ, (const BYTE *)wine_clsid, sizeof(wine_clsid));
 
         if (rc == ERROR_SUCCESS)
-            rc = RegSetValueExW(key, desc, 0, REG_SZ, (const BYTE *)wine_desc, sizeof(wine_desc));
+            rc = RegSetValueExW(key, u"Description", 0, REG_SZ, (const BYTE *)wine_desc, sizeof(wine_desc));
 
         RegCloseKey(key);
     }

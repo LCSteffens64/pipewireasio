@@ -139,7 +139,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
         return E_NOINTERFACE;
     }
 
-    if (IsEqualGUID(rclsid, &CLSID_WineASIO))
+    if (IsEqualGUID(rclsid, &CLSID_PipeWireASIO))
     {
         CF_AddRef((IClassFactory*) &WINEASIO_CF);
         *ppv = &WINEASIO_CF;

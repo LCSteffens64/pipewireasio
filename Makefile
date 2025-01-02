@@ -23,8 +23,8 @@ all:
 
 clean:
 	rm -f *.o *.so
-	rm -rf build32 build64
-	rm -rf gui/__pycache__
+	rm -rf build build32 build64
+	rm -rf gui/__pycache__ new_gui/__pycache__
 
 # ---------------------------------------------------------------------------------------------------------------------
 

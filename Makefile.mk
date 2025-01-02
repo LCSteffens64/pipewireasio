@@ -12,7 +12,13 @@ ifeq ($(M),)
 $(error incorrect use of Makefile, M var is missing)
 endif
 
-wineasio_dll_MODULE   = wineasio$(M).dll
+export wineasio_dll_MODULE = pipewireasio$(M).dll
+
+libpwasio_gui:
+	$(MAKE) -C new_gui ../build$(M)/libpwasio_gui.so
+
+build$(M)/pw_helper.o: pw_helper.cpp
+	$(MAKE) -C new_gui ../build$(M)/pw_helper.o
 
 PREFIX                = /usr
 SRCDIR                = .
@@ -21,17 +27,25 @@ DLLS                  = $(wineasio_dll_MODULE) $(wineasio_dll_MODULE).so
 ### Tools
 
 CC        = gcc
+WINE      = wine
 WINEBUILD = winebuild
-WINECC    = winegcc
+WINECXX   = wineg++
+
+ifeq ($(M),64)
+WINE      = wine64
+endif
 
 ### Common settings
 
-CEXTRA                = -m$(M) -D_REENTRANT -fPIC -Wall -pipe
+CEXTRA                = -m$(M) -D_REENTRANT -fPIC -Wall -pipe -std=gnu11 -D_GNU_SOURCE
 CEXTRA               += -fno-strict-aliasing -Wdeclaration-after-statement -Wwrite-strings -Wpointer-arith
 CEXTRA               += -Werror=implicit-function-declaration
 CEXTRA               += $(shell pkg-config --cflags jack)
+CEXTRA               += '-DDRIVER_DLL="$(wineasio_dll_MODULE)"'
 RCEXTRA               =
 INCLUDE_PATH          = -I. -Irtaudio/include
+INCLUDE_PATH         += -I$(PREFIX)/include/pipewire-0.3
+INCLUDE_PATH         += -I$(PREFIX)/include/spa-0.2
 INCLUDE_PATH         += -I$(PREFIX)/include/wine
 INCLUDE_PATH         += -I$(PREFIX)/include/wine/windows
 INCLUDE_PATH         += -I$(PREFIX)/include/wine-development
@@ -40,7 +54,7 @@ INCLUDE_PATH         += -I/opt/wine-stable/include
 INCLUDE_PATH         += -I/opt/wine-stable/include/wine/windows
 INCLUDE_PATH         += -I/opt/wine-staging/include
 INCLUDE_PATH         += -I/opt/wine-staging/include/wine/windows
-LIBRARIES             = $(shell pkg-config --libs jack)
+LIBRARIES             = -lpipewire-0.3
 
 # 64bit build needs an extra flag
 ifeq ($(M),64)
@@ -80,7 +94,7 @@ wineasio_dll_DLLS     = odbc32 \
 			winmm
 wineasio_dll_LIBRARIES = uuid
 
-wineasio_dll_OBJS     = $(wineasio_dll_C_SRCS:%.c=build$(M)/%.c.o)
+wineasio_dll_OBJS     = $(wineasio_dll_C_SRCS:%.c=build$(M)/%.c.o) build$(M)/pw_helper.o
 
 ### Global source lists
 
@@ -89,11 +103,11 @@ C_SRCS                = $(wineasio_dll_C_SRCS)
 ### Generic targets
 
 all:
-build: rtaudio/include/asio.h $(DLLS:%=build$(M)/%)
+build: rtaudio/include/asio.h $(DLLS:%=build$(M)/%) libpwasio_gui
 
 ### Build rules
 
-.PHONY: all
+.PHONY: all build libpwasio_gui
 
 # Implicit rules
 
@@ -107,5 +121,6 @@ build$(M)/$(wineasio_dll_MODULE): $(wineasio_dll_OBJS)
 	$(WINEBUILD) -m$(M) --dll --fake-module -E wineasio.dll.spec $^ -o $@
 
 build$(M)/$(wineasio_dll_MODULE).so: $(wineasio_dll_OBJS)
-	$(WINECC) $^ $(wineasio_dll_LDFLAGS) $(LIBRARIES) \
-		$(wineasio_dll_DLLS:%=-l%) $(wineasio_dll_LIBRARIES:%=-l%) -o $@
+	$(WINECXX) $^ $(wineasio_dll_LDFLAGS) $(LIBRARIES) \
+		$(wineasio_dll_DLLS:%=-l%) $(wineasio_dll_LIBRARIES:%=-l%) -o $@ \
+		-Wl,-soname,$(wineasio_dll_MODULE).so

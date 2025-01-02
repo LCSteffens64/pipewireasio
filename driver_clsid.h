@@ -2,7 +2,7 @@
 
 #include <wine/windows/guiddef.h>
 
-/* {48D0C522-BFCC-45cc-8B84-17F25F33E6E8} */
-#define CLSID_WineASIO_STRING(x) x##"{48D0C522-BFCC-45CC-8B84-17F25F33E6E8}"
-static GUID const CLSID_WineASIO = {
-0x48d0c522, 0xbfcc, 0x45cc, { 0x8b, 0x84, 0x17, 0xf2, 0x5f, 0x33, 0xe6, 0xe8 } };
+/* {A4262EE4-C528-4FF9-87BE-56261AD792C3} */
+#define CLSID_PipeWireASIO_STRING(x) x##"{A4262EE4-C528-4FF9-87BE-56261AD792C3}"
+static GUID const CLSID_PipeWireASIO = {
+0xA4262EE4, 0xC528, 0x4FF9, { 0x87, 0xBE, 0x56, 0x26, 0x1A, 0xD7, 0x92, 0xC3, }};
