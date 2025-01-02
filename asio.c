@@ -502,7 +502,7 @@ HIDDEN ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
     }
 
     This->asio_driver_state = Initialized;
-    TRACE("WineASIO 0.%.1f initialized\n",(float) This->asio_version / 10);
+    TRACE("WineASIO 0.%d.%d initialized\n", This->asio_version / 10, This->asio_version % 10);
     return ASIOTrue;
 }
 
@@ -1367,6 +1367,26 @@ static DWORD WINAPI jack_thread_creator_helper(LPVOID arg)
     return 0;
 }
 
+static void parse_boolean_env(char const *env, bool *var) {
+    if (!env[0])
+        return;
+    if (!env[1]) {
+        switch (env[0]) {
+            case 'n': case 'N': case 'f': case 'F':
+            case '0': *var = false; break;
+            case 'y': case 'Y': case 't': case 'T':
+            case '1': *var = true; break;
+            default: ;
+        }
+        return;
+    }
+
+    if (!strcasecmp(env, "on") || !strcasecmp(env, "yes") || !strcasecmp(env, "true"))
+        *var = true;
+    else if (!strcasecmp(env, "off") || !strcasecmp(env, "no") || !strcasecmp(env, "false"))
+        *var = false;
+}
+
 static VOID configure_driver(IWineASIOImpl *This)
 {
     HKEY    hkey;
@@ -1507,12 +1527,19 @@ static VOID configure_driver(IWineASIOImpl *This)
         result = RegSetValueExW(hkey, value_wineasio_connect_to_hardware, 0, REG_DWORD, (LPBYTE) &value, size);
     }
 
-    /* get client name by stripping path and extension */
-    GetModuleFileNameW(0, application_path, MAX_PATH);
-    application_name = strrchrW(application_path, L'.');
-    *application_name = 0;
-    application_name = strrchrW(application_path, L'\\');
-    application_name++;
+    /* over ride the JACK client name gotten from the application name */
+    size = GetEnvironmentVariableW(u"WINEASIO_CLIENT_NAME", application_path, ASIO_MAX_NAME_LENGTH);
+    if (size == 0) {
+        /* get client name by stripping path and extension */
+        GetModuleFileNameW(0, application_path, MAX_PATH);
+        application_name = strrchrW(application_path, L'.');
+        *application_name = 0;
+        application_name = strrchrW(application_path, L'\\');
+        application_name++;
+    } else {
+        application_name = application_path;
+    }
+
     WideCharToMultiByte(CP_UTF8, WC_SEPCHARS, application_name, -1, This->jack_client_name, ASIO_MAX_NAME_LENGTH, NULL, NULL);
 
     RegCloseKey(hkey);
@@ -1537,26 +1564,17 @@ static VOID configure_driver(IWineASIOImpl *This)
 
     if (GetEnvironmentVariableA("WINEASIO_AUTOSTART_SERVER", environment_variable, MAX_ENVIRONMENT_SIZE))
     {
-        if (!strcasecmp(environment_variable, "on"))
-            This->wineasio_autostart_server = TRUE;
-        else if (!strcasecmp(environment_variable, "off"))
-            This->wineasio_autostart_server = FALSE;
+        parse_boolean_env(environment_variable, &This->wineasio_autostart_server);
     }
 
     if (GetEnvironmentVariableA("WINEASIO_CONNECT_TO_HARDWARE", environment_variable, MAX_ENVIRONMENT_SIZE))
     {
-        if (!strcasecmp(environment_variable, "on"))
-            This->wineasio_connect_to_hardware = TRUE;
-        else if (!strcasecmp(environment_variable, "off"))
-            This->wineasio_connect_to_hardware = FALSE;
+        parse_boolean_env(environment_variable, &This->wineasio_connect_to_hardware);
     }
 
     if (GetEnvironmentVariableA("WINEASIO_FIXED_BUFFERSIZE", environment_variable, MAX_ENVIRONMENT_SIZE))
     {
-        if (!strcasecmp(environment_variable, "on"))
-            This->wineasio_fixed_buffersize = TRUE;
-        else if (!strcasecmp(environment_variable, "off"))
-            This->wineasio_fixed_buffersize = FALSE;
+        parse_boolean_env(environment_variable, &This->wineasio_fixed_buffersize);
     }
 
     if (GetEnvironmentVariableA("WINEASIO_PREFERRED_BUFFERSIZE", environment_variable, MAX_ENVIRONMENT_SIZE))
@@ -1566,11 +1584,6 @@ static VOID configure_driver(IWineASIOImpl *This)
         if (errno != ERANGE)
             This->wineasio_preferred_buffersize = result;
     }
-
-    /* over ride the JACK client name gotten from the application name */
-    size = GetEnvironmentVariableA("WINEASIO_CLIENT_NAME", environment_variable, ASIO_MAX_NAME_LENGTH);
-    if (size > 0 && size < ASIO_MAX_NAME_LENGTH)
-        strcpy(This->jack_client_name, environment_variable);
 
     /* if wineasio_preferred_buffersize is not a power of two or if out of range, then set to ASIO_PREFERRED_BUFFERSIZE */
     if (!(This->wineasio_preferred_buffersize > 0 && !(This->wineasio_preferred_buffersize&(This->wineasio_preferred_buffersize-1))
