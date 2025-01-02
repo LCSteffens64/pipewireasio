@@ -8,6 +8,8 @@
  * Portions copyright (C) 2010 Torben Hohn
  * Portions copyright (C) 2010 Nedko Arnaudov
  * Portions copyright (C) 2013 Joakim Hernberg
+ * Portions copyright (C) 2020-2024 Filipe Coelho
+ * Portions copyright (C) 2024-2025 Dawid Kraiński
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -1781,7 +1783,7 @@ static VOID configure_driver(IWineASIOImpl *This)
     This->asio_driver_state = Loaded;
     This->asio_sample_rate = 0;
     This->asio_time_info_mode = FALSE;
-    This->asio_version = 92;
+    This->asio_version = 10;
 
     This->wineasio_number_inputs = 16;
     This->wineasio_number_outputs = 16;

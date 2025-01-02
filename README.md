@@ -1,14 +1,16 @@
-# WineASIO
+# PipeWireASIO
 
-WineASIO provides an ASIO to JACK driver for WINE.  
+PipeWireASIO provides an ASIO to PipeWire driver for WINE.
 ASIO is the most common Windows low-latency driver, so is commonly used in audio workstation programs.
 
-You can, for example, use with FLStudio under GNU/Linux systems (together with JACK).
+You can, for example, use with FLStudio under GNU/Linux systems (when running PipeWire).
 
-![Screenshot](screenshot.png)
+![Screenshot](screenshot_pw.png)
 
-For best results with Debian-based distributions,
-enable the [KXStudio repositories](https://kx.studio/Repositories) and install WineASIO from there.
+PipeWireASIO is currently in development, and there are problems that need to be solved for a smooth experience.
+
+PipeWireASIO is based on WineASIO, a driver using JACK instead of PipeWire, so I'd like to
+thank all WineASIO developers for making this possible.
 
 ### BUILDING
 
@@ -31,6 +33,7 @@ To install 32-bit WineASIO (substitute with the path to the 32-bit wine libs for
 ```sh
 sudo cp build32/wineasio32.dll /usr/lib/i386-linux-gnu/wine/i386-windows/
 sudo cp build32/wineasio32.dll.so /usr/lib/i386-linux-gnu/wine/i386-unix/
+sudo cp build32/libpwasio_gui.so /usr/lib/i386-linux-gnu/wine/i386-unix/
 ```
 
 To install 64bit WineASIO (substitute with the path to the 64-bit wine libs for your distro).
@@ -38,7 +41,11 @@ To install 64bit WineASIO (substitute with the path to the 64-bit wine libs for 
 ```sh
 sudo cp build64/wineasio64.dll /usr/lib/x86_64-linux-gnu/wine/x86_64-windows/
 sudo cp build64/wineasio64.dll.so /usr/lib/x86_64-linux-gnu/wine/x86_64-unix/
+sudo cp build64/libpwasio_gui.so /usr/lib/x86_64-linux-gnu/wine/x86_64-unix/
 ```
+
+Alternatively, run `make install32` (with root priviledges) to install the 32-bit libraries to the default location,
+`make install64` for the 64-bit version, or just `make install` to install both.
 
 **NOTE:**  
 **Wine does not have consistent paths between different Linux distributions, these paths are only a hint and likely not what will work for you.**  
@@ -63,16 +70,19 @@ wineasio-register
 
 to activate WineASIO for the current Wine prefix.
 
+Alternativly, copy the `.dll`s to your Wine prefix's `windows/system32` (64-bit) or `windows/syswow64` (32-bit)
+directories and run `make register` (or `register32`/`register64` for a single architecture) to the libraries.
+
 #### CUSTOM WINEPREFIX
 
-The `wineasio-register` script will register the WineASIO driver in the default Wine prefix `~/.wine`.  
+The `wineasio-register` script will register the WineASIO driver in the default Wine prefix `~/.wine`.
 You can specify another prefix like so:
 
 ```sh
-env WINEPREFIX=~/asioapp wineasio-register
+WINEPREFIX=~/asioapp wineasio-register
 ```
 
-### GENERAL INFORMATION
+### GENERAL INFORMATION (TODO: update for PipeWire)
 
 ASIO apps get notified if the jack buffersize changes.
 
@@ -122,6 +132,14 @@ In addition there is a `WINEASIO_CLIENT_NAME` environment variable,
 that overrides the JACK client name derived from the program name.
 
 ### CHANGE LOG
+
+#### PipeWire version: `pipewireasioXX.dll`
+
+#### 0.1.0
+* 02-JAN-2025: Cleanup for release
+* 31-DEC-2024: First working version of the PipeWire ASIO driver 🎉
+
+#### JACK version: `wineasioXX.dll`
 
 #### 1.2.0
 * 29-SEP-2023: Fix compatibility with Wine > 8
@@ -196,18 +214,18 @@ that overrides the JACK client name derived from the program name.
 
 ### LEGAL STUFF
 
-Copyright (C) 2006 Robert Reif  
-Portions copyright (C) 2007 Ralf Beck  
-Portions copyright (C) 2007 Johnny Petrantoni  
-Portions copyright (C) 2007 Stephane Letz  
-Portions copyright (C) 2008 William Steidtmann  
-Portions copyright (C) 2010 Peter L Jones  
-Portions copyright (C) 2010 Torben Hohn  
-Portions copyright (C) 2010 Nedko Arnaudov  
-Portions copyright (C) 2011 Christian Schoenebeck  
-Portions copyright (C) 2013 Joakim Hernberg  
-Portions copyright (C) 2020-2023 Filipe Coelho  
-Portions copyright (C) 2024 Dawid Kraiński  
+Copyright (C) 2006 Robert Reif
+Portions copyright (C) 2007 Ralf Beck
+Portions copyright (C) 2007 Johnny Petrantoni
+Portions copyright (C) 2007 Stephane Letz
+Portions copyright (C) 2008 William Steidtmann
+Portions copyright (C) 2010 Peter L Jones
+Portions copyright (C) 2010 Torben Hohn
+Portions copyright (C) 2010 Nedko Arnaudov
+Portions copyright (C) 2011 Christian Schoenebeck
+Portions copyright (C) 2013 Joakim Hernberg
+Portions copyright (C) 2020-2024 Filipe Coelho
+Portions copyright (C) 2024-2025 Dawid Kraiński
 
-The WineASIO library code is licensed under LGPL v2.1, see COPYING.LIB for more details.  
+The PipeWireASIO library code is licensed under LGPL v2.1, see COPYING.LIB for more details.  
 The PipeWireASIO new settings UI code is licensed under GPL v2+, see COPYING.GUI for more details.  
