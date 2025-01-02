@@ -1,4 +1,6 @@
 #include "pw_helper.hpp"
+#include "pw_helper_c.h"
+#include "pw_helper_common.h"
 
 #include <chrono>
 #include <memory>
@@ -18,6 +20,7 @@
 #include <pipewire/pipewire.h>
 #include <pipewire/properties.h>
 #include <pipewire/proxy.h>
+#include <pipewire/thread.h>
 #include <pipewire/thread-loop.h>
 #include <spa/pod/builder.h>
 
@@ -264,6 +267,10 @@ struct Helper {
 	struct pw_registry *registry = {};
 	struct spa_hook registry_listener = {};
 
+	struct spa_thread_utils *thread_impl = {};
+	pw_helper_thread_creator_t thread_creator = {};
+	struct spa_thread_utils thread_utils;
+
 	std::unordered_map<uint32_t, struct pw_proxy *> bound_proxies;
 
 	std::atomic<InitState> init_state = InitState::Init;
@@ -312,6 +319,8 @@ struct Helper {
 		return PwInterface::Unknown;
 	}
 };
+
+#include "pw_thread.inc.cpp"
 
 using namespace std::string_view_literals;
 #define _SV(x) x##sv
@@ -383,24 +392,47 @@ static struct pw_core_events const s_core_events = {
 	.done = roundtrip_handler,
 };
 
-Helper *create_helper(int argc, char **argv) {
+Helper *create_helper(int argc, char **argv, InitArgs const *conf) {
 	pw_init(&argc, &argv);
 	printf("PipeWire initialized with version: %s\n", pw_get_library_version());
 
 	std::unique_ptr<Helper> This(new Helper);
+
 	if (!(This->thread_loop = pw_thread_loop_new("pw-loop", NULL)))
 	{
 		std::fputs("Unable to create the PipeWire loop\n", stderr);
 		return nullptr;
 	}
 
+	struct pw_properties *init_props = pw_properties_new(
+		PW_KEY_CLIENT_NAME, "pw-asio",
+		PW_KEY_CLIENT_API, "ASIO",
+		nullptr);
+	if (conf->app_name) {
+		pw_properties_set(init_props, PW_KEY_APP_NAME, conf->app_name);
+	}
+
 	if (!(This->context = pw_context_new(
 		pw_thread_loop_get_loop(This->thread_loop),
-		pw_properties_new(PW_KEY_APP_NAME, "pw-asio", nullptr), 0)))
+		init_props, 0)))
 	{
 		std::fputs("Unable to create a PipeWire context\n", stderr);
 		return nullptr;
 	}
+
+	if (conf->thread_creator) {
+		This->thread_creator = conf->thread_creator;
+	}
+
+	This->thread_impl = reinterpret_cast<struct spa_thread_utils *>(pw_context_get_object(This->context, SPA_TYPE_INTERFACE_ThreadUtils));
+	if (!This->thread_impl) {
+		This->thread_impl = pw_thread_utils_get();
+	}
+	This->thread_utils.iface = SPA_INTERFACE_INIT(
+			SPA_TYPE_INTERFACE_ThreadUtils,
+			SPA_VERSION_THREAD_UTILS,
+			&thread_utils_impl, This.get());
+	pw_context_set_object(This->context, SPA_TYPE_INTERFACE_ThreadUtils, &This->thread_utils);
 
 	if (!(This->core = pw_context_connect(This->context, NULL, 0)))
 	{
@@ -434,6 +466,13 @@ Helper *create_helper(int argc, char **argv) {
 	This->wait_for_roundtrip();
 	std::puts("[DEBUG] Rountrip done");
 
+	if (conf->loop)
+		*conf->loop = pw_thread_loop_get_loop(This->thread_loop);
+	if (conf->context)
+		*conf->context = This->context;
+	if (conf->core)
+		*conf->core = This->core;
+
 	return This.release();
 }
 
@@ -457,6 +496,36 @@ std::vector<struct pw_node *> enumerate_pipewire_endpoints(Helper *helper) {
 void get_node_props(Helper *helper, struct pw_node *proxy, std::span<std::pair<std::string_view, std::string*>> props) {
 	Node *node = Node::get(proxy);
 	node->get_or_wait_for_info(nullptr, nullptr, props);
+}
+
+void lock_loop(Helper *helper) {
+	pw_thread_loop_lock(helper->thread_loop);
+}
+
+void unlock_loop(Helper *helper) {
+	pw_thread_loop_unlock(helper->thread_loop);
+}
+
+// C API
+
+extern "C" {
+
+struct user_pw_helper *user_pw_create_helper(int argc, char **argv, struct pw_helper_init_args const *conf) {
+	return reinterpret_cast<struct user_pw_helper *>(create_helper(argc, argv, conf));
+}
+
+void user_pw_destroy_helper(struct user_pw_helper *helper) {
+	destroy_helper(reinterpret_cast<Helper *>(helper));
+}
+
+void user_pw_lock_loop(struct user_pw_helper *helper) {
+	lock_loop(reinterpret_cast<Helper *>(helper));
+}
+
+void user_pw_unlock_loop(struct user_pw_helper *helper) {
+	unlock_loop(reinterpret_cast<Helper *>(helper));
+}
+
 }
 
 }

@@ -7,7 +7,10 @@ int main(int argc, char **argv) {
 	QApplication app(argc, argv);
 	app.setApplicationName("PipeWire ASIO Settings");
 
-	PwHelper::Helper *helper = PwHelper::create_helper(argc, argv);
+	PwHelper::InitArgs const config = {
+		.app_name = "pw-asio settings",
+	};
+	PwHelper::Helper *helper = PwHelper::create_helper(argc, argv, &config);
 	if (!helper) {
 		std::fputs("Failed to connect to PipeWire\n", stderr);
 		return 1;
