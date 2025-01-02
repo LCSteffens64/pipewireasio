@@ -19,6 +19,23 @@ all:
 64:
 	$(MAKE) build ARCH=x86_64 M=64
 
+install32:
+	$(MAKE) install ARCH=i386 M=32
+
+install64:
+	$(MAKE) install ARCH=x86_64 M=64
+
+register32:
+	$(MAKE) register ARCH=i386 M=32
+
+register64:
+	$(MAKE) register ARCH=x86_64 M=64
+
+ifeq ($(M),)
+install: install32 install64
+register: register32 register64
+endif
+
 # ---------------------------------------------------------------------------------------------------------------------
 
 clean:

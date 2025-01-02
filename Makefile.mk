@@ -105,9 +105,17 @@ C_SRCS                = $(wineasio_dll_C_SRCS)
 all:
 build: rtaudio/include/asio.h $(DLLS:%=build$(M)/%) libpwasio_gui
 
+install:
+	install build$(M)/$(wineasio_dll_MODULE) $(PREFIX)/lib$(M)/wine/$(ARCH)-windows/
+	install build$(M)/$(wineasio_dll_MODULE).so $(PREFIX)/lib$(M)/wine/$(ARCH)-unix/
+	install build$(M)/libpwasio_gui.so $(PREFIX)/lib$(M)/wine/$(ARCH)-unix/
+
+register:
+	$(WINE) regsvr32 $(wineasio_dll_MODULE)
+
 ### Build rules
 
-.PHONY: all build libpwasio_gui
+.PHONY: all build install register libpwasio_gui
 
 # Implicit rules
 
