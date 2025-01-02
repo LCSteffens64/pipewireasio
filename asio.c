@@ -414,7 +414,6 @@ HIDDEN ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
     int             i;
 
     This->sys_ref = sysRef;
-    mlockall(MCL_FUTURE);
     configure_driver(This);
 
     if (!(This->jack_client = jack_client_open(This->jack_client_name, jack_options, &jack_status)))
