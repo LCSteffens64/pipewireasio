@@ -2,6 +2,7 @@
 *.dll
 *.o
 *.so
+build/
 build32/
 build64/
 new_gui/app

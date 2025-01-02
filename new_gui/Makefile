@@ -2,11 +2,28 @@ all:
 
 python: ui_dialog.py ui_device_selector.py
 
-CFLAGS = -fpic -std=c++20 -ggdb
-LFLAGS = -lQt5Core -lQt5Widgets -lQt5Gui -fpic -lpipewire-0.3
+ifneq ($(M),)
+ARCH_FLAG = -m$(M)
+endif
 
-app: app.o dialog.o device_selector.o device_chooser.o pw_helper.o
+CFLAGS = -fpic -std=c++20 -ggdb $(ARCH_FLAG)
+LFLAGS = $(ARCH_FLAG) -lQt5Core -lQt5Widgets -lQt5Gui -fpic -lpipewire-0.3
+
+BUILD_DIR = ../build$(M)
+COMMON_OBJS := dialog.o device_selector.o device_chooser.o
+
+app: $(BUILD_DIR)/app
+	install $< $@
+
+objs = $(1:%.o=$(BUILD_DIR)/%.o)
+
+$(BUILD_DIR)/app: $(call objs,$(COMMON_OBJS) app.o pw_helper.o)
 	$(CXX) -o $@ $(LFLAGS) $^
+
+ifneq ($(M),)
+$(BUILD_DIR)/libpwasio_gui.so: $(call objs,$(COMMON_OBJS) gui.o)
+	$(CXX) -o $@ -shared $(LFLAGS) $^ $(BUILD_DIR)/$(wineasio_dll_MODULE).so
+endif
 
 device_selector.o: ui_device_selector.hpp
 dialog.o: ui_dialog.hpp
@@ -18,10 +35,12 @@ dialog.o: dialog.moc
 device_selector.o: device_selector.moc
 device_chooser.o: device_chooser.moc
 
-%.o: %.cpp
+$(BUILD_DIR)/%.o: %.cpp
+	@$(shell mkdir -p $(BUILD_DIR))
 	$(CXX) -c -o $@ $(CFLAGS) $(QT_CFLAGS) $(PW_CFLAGS) $<
 
-pw_helper.o: ../pw_helper.cpp
+$(BUILD_DIR)/pw_helper.o: ../pw_helper.cpp
+	@$(shell mkdir -p $(BUILD_DIR))
 	$(CXX) -c -o $@ $(CFLAGS) $(PW_CFLAGS) $<
 
 %.moc: %.hpp
