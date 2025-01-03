@@ -38,7 +38,7 @@ typedef struct {
     LONG ref;
 } IClassFactoryImpl;
 
-extern HRESULT WINAPI WineASIOCreateInstance(REFIID riid, LPVOID *ppobj);
+extern HRESULT WINAPI WineASIOCreateInstance(REFIID riid, LPVOID *ppobj, IUnknown *cls_factory);
 
 /*******************************************************************************
  * ClassFactory
@@ -70,6 +70,25 @@ static ULONG WINAPI CF_Release(LPCLASSFACTORY iface)
     return ref;
 }
 
+static HRESULT WINAPI CF_CreateInstance(LPCLASSFACTORY iface, LPUNKNOWN pOuter, REFIID riid, LPVOID *ppobj);
+
+static HRESULT WINAPI CF_LockServer(LPCLASSFACTORY iface, BOOL dolock)
+{
+    /* IClassFactoryImpl *This = (IClassFactoryImpl *)iface;
+    FIXME("iface: %p, dolock: %d) stub!\n", This, dolock); */
+    return E_NOTIMPL;
+}
+
+static const IClassFactoryVtbl CF_Vtbl = {
+    CF_QueryInterface,
+    CF_AddRef,
+    CF_Release,
+    CF_CreateInstance,
+    CF_LockServer
+};
+
+static IClassFactoryImpl WINEASIO_CF = { &CF_Vtbl, 1 };
+
 static HRESULT WINAPI CF_CreateInstance(LPCLASSFACTORY iface, LPUNKNOWN pOuter, REFIID riid, LPVOID *ppobj)
 {
     /* IClassFactoryImpl *This = (IClassFactoryImpl *)iface;
@@ -85,25 +104,8 @@ static HRESULT WINAPI CF_CreateInstance(LPCLASSFACTORY iface, LPUNKNOWN pOuter, 
 
     *ppobj = NULL;
     /* TRACE("Creating the WineASIO object\n"); */
-    return WineASIOCreateInstance(riid, ppobj);
+    return WineASIOCreateInstance(riid, ppobj, (IUnknown *)&WINEASIO_CF);
 }
-
-static HRESULT WINAPI CF_LockServer(LPCLASSFACTORY iface, BOOL dolock)
-{
-    /* IClassFactoryImpl *This = (IClassFactoryImpl *)iface;
-    FIXME("iface: %p, dolock: %d) stub!\n", This, dolock); */
-    return S_OK;
-}
-
-static const IClassFactoryVtbl CF_Vtbl = {
-    CF_QueryInterface,
-    CF_AddRef,
-    CF_Release,
-    CF_CreateInstance,
-    CF_LockServer
-};
-
-static IClassFactoryImpl WINEASIO_CF = { &CF_Vtbl, 1 };
 
 /*******************************************************************************
  * DllGetClassObject [DSOUND.@]
@@ -161,8 +163,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
  */
 HRESULT WINAPI DllCanUnloadNow(void)
 {
-    /* FIXME("(void): stub\n"); */
-    return S_FALSE;
+    return WINEASIO_CF.ref == 1;
 }
 
 /***********************************************************************

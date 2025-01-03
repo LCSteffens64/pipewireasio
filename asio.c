@@ -168,6 +168,9 @@ typedef struct IWineASIOImpl
     const IWineASIOVtbl         *lpVtbl;
     LONG                        ref;
 
+    /* Reference to the DLL class factory (to keep DLL alive while an object is live) */
+    IUnknown                   *cls_factory;
+
     /* The app's main window handle on windows, 0 on OS/X */
     HWND                        sys_ref;
 
@@ -296,7 +299,7 @@ static inline int  jack_sample_rate_callback (jack_nframes_t nframes, void *arg)
  *  Support functions
  */
 
-HRESULT WINAPI  WineASIOCreateInstance(REFIID riid, LPVOID *ppobj);
+HRESULT WINAPI  WineASIOCreateInstance(REFIID riid, LPVOID *ppobj, IUnknown *cls_factory);
 static  void    store_config(IWineASIOImpl *This);
 static  VOID    configure_driver(IWineASIOImpl *This);
 static  void    get_nodes_by_name(IWineASIOImpl *This);
@@ -574,9 +577,11 @@ HIDDEN ULONG STDMETHODCALLTYPE Release(LPWINEASIO iface)
         if (This->input_channel)
             HeapFree(GetProcessHeap(), 0, This->input_channel);
     }
-    TRACE("PipeWireASIO terminated\n\n");
-    if (ref == 0)
+    if (ref == 0) {
+        TRACE("PipeWireASIO terminated\n\n");
+        This->cls_factory->lpVtbl->Release(This->cls_factory);
         HeapFree(GetProcessHeap(), 0, This);
+    }
     return ref;
 }
 
@@ -2040,7 +2045,7 @@ static VOID configure_driver(IWineASIOImpl *This)
 }
 
 /* Allocate the interface pointer and associate it with the vtbl/WineASIO object */
-HRESULT WINAPI WineASIOCreateInstance(REFIID riid, LPVOID *ppobj)
+HRESULT WINAPI WineASIOCreateInstance(REFIID riid, LPVOID *ppobj, IUnknown *cls_factory)
 {
     IWineASIOImpl   *pobj;
 
@@ -2055,6 +2060,8 @@ HRESULT WINAPI WineASIOCreateInstance(REFIID riid, LPVOID *ppobj)
 
     pobj->lpVtbl = &WineASIO_Vtbl;
     pobj->ref = 1;
+    pobj->cls_factory = cls_factory;
+    cls_factory->lpVtbl->AddRef(cls_factory);
     TRACE("pobj = %p\n", pobj);
     *ppobj = pobj;
     /* TRACE("return %p\n", *ppobj); */
