@@ -202,6 +202,9 @@ typedef struct IWineASIOImpl
     struct pw_context *pw_context;
     struct pw_core *pw_core;
 
+    struct pw_node *current_input_node;
+    struct pw_node *current_output_node;
+
     struct pw_filter *pw_filter;
     struct spa_hook pw_filter_listener;
 
@@ -254,10 +257,6 @@ HIDDEN ASIOError STDMETHODCALLTYPE      ControlPanel(LPWINEASIO iface);
 HIDDEN ASIOError STDMETHODCALLTYPE      Future(LPWINEASIO iface, LONG selector, void *opt);
 HIDDEN ASIOError STDMETHODCALLTYPE      OutputReady(LPWINEASIO iface);
 
-HIDDEN void GuiClosed(struct pwasio_gui_conf *conf);
-HIDDEN void GuiApplyConfig(struct pwasio_gui_conf *conf);
-HIDDEN void GuiLoadConfig(struct pwasio_gui_conf *conf);
-
 /*
  * thiscall wrappers for the vtbl (as seen from app side 32bit)
  */
@@ -300,6 +299,11 @@ static inline int  jack_sample_rate_callback (jack_nframes_t nframes, void *arg)
 HRESULT WINAPI  WineASIOCreateInstance(REFIID riid, LPVOID *ppobj);
 static  void    store_config(IWineASIOImpl *This);
 static  VOID    configure_driver(IWineASIOImpl *This);
+static  void    get_nodes_by_name(IWineASIOImpl *This);
+
+HIDDEN void GuiClosed(struct pwasio_gui_conf *conf);
+HIDDEN void GuiApplyConfig(struct pwasio_gui_conf *conf);
+HIDDEN void GuiLoadConfig(struct pwasio_gui_conf *conf);
 
 static DWORD WINAPI jack_thread_creator_helper(LPVOID arg);
 static int          jack_thread_creator(pthread_t* thread_id, const pthread_attr_t* attr, void *(*function)(void*), void* arg);
@@ -693,6 +697,13 @@ HIDDEN ASIOBool STDMETHODCALLTYPE Init(LPWINEASIO iface, void *sysRef)
     This->gui_conf.load_config = GuiLoadConfig;
     This->gui_conf.pw_helper = This->pw_helper;
     This->gui_conf.cf_buffer_size = 1024;
+
+    get_nodes_by_name(This);
+
+    if (This->current_input_node)
+        TRACE("Selected input node: %u\n", pw_proxy_get_bound_id((struct pw_proxy *)This->current_input_node));
+    if (This->current_output_node)
+        TRACE("Selected output node: %u\n", pw_proxy_get_bound_id((struct pw_proxy *)This->current_output_node));
 
     //This->asio_sample_rate = jack_get_sample_rate(This->jack_client);
     //This->asio_current_buffersize = jack_get_buffer_size(This->jack_client);
@@ -1712,6 +1723,60 @@ static DWORD WINAPI jack_thread_creator_helper(LPVOID arg)
     return 0;
 }
 
+static void get_nodes_by_name(IWineASIOImpl *This) {
+    char *namebuf = NULL;
+    int namebuf_len = 0;
+    int required_len;
+
+    This->current_input_node = NULL;
+    This->current_output_node = NULL;
+
+    if (This->pwasio_input_device_name[0]) {
+        required_len = WideCharToMultiByte(CP_UTF8, 0, This->pwasio_input_device_name, -1, NULL, 0, NULL, NULL);
+        if (required_len == 0) {
+            fputs("ERROR: Failed to convert input device name to UTF-8\n", stderr);
+        } else {
+            if (namebuf_len < required_len) {
+                free(namebuf);
+                namebuf = malloc(required_len);
+                namebuf_len = required_len;
+            }
+            if (0 == WideCharToMultiByte(CP_UTF8, 0, This->pwasio_input_device_name, -1, namebuf, namebuf_len, NULL, NULL)) {
+                // Should never happen.
+                abort();
+            }
+            This->current_input_node = user_pw_find_node_by_name(This->pw_helper, namebuf);
+        }
+    }
+
+    if (This->pwasio_output_device_name[0]) {
+        required_len = WideCharToMultiByte(CP_UTF8, 0, This->pwasio_output_device_name, -1, NULL, 0, NULL, NULL);
+        if (required_len == 0) {
+            fputs("ERROR: Failed to convert output device name to UTF-8\n", stderr);
+        } else {
+            if (namebuf_len < required_len) {
+                free(namebuf);
+                namebuf = malloc(required_len);
+                namebuf_len = required_len;
+            }
+            if (0 == WideCharToMultiByte(CP_UTF8, 0, This->pwasio_output_device_name, -1, namebuf, namebuf_len, NULL, NULL)) {
+                // Should never happen.
+                abort();
+            }
+            This->current_output_node = user_pw_find_node_by_name(This->pw_helper, namebuf);
+        }
+    }
+
+    free(namebuf);
+
+    if (This->current_input_node == NULL) {
+        This->current_input_node = user_pw_get_default_node(This->pw_helper, USER_PW_DEFAULT_INPUT);
+    }
+    if (This->current_output_node == NULL) {
+        This->current_output_node = user_pw_get_default_node(This->pw_helper, USER_PW_DEFAULT_OUTPUT);
+    }
+}
+
 static void parse_boolean_env(char const *env, bool *var) {
     if (!env[0])
         return;
@@ -1926,7 +1991,7 @@ static VOID configure_driver(IWineASIOImpl *This)
         application_name = application_path;
     }
 
-    WideCharToMultiByte(CP_UTF8, WC_SEPCHARS, application_name, -1, This->client_name, ASIO_MAX_NAME_LENGTH, NULL, NULL);
+    WideCharToMultiByte(CP_UTF8, 0, application_name, -1, This->client_name, ASIO_MAX_NAME_LENGTH, NULL, NULL);
 
     RegCloseKey(hkey);
 
