@@ -163,7 +163,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
  */
 HRESULT WINAPI DllCanUnloadNow(void)
 {
-    return WINEASIO_CF.ref == 1;
+    return WINEASIO_CF.ref == 1 ? S_OK : S_FALSE;
 }
 
 /***********************************************************************
