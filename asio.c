@@ -66,7 +66,7 @@
 #endif
 
 #define IEEE754_64FLOAT 1
-#define NATIVE_INT64 1
+#undef NATIVE_INT64
 #include <asio.h>
 
 #ifdef DEBUG
@@ -78,6 +78,8 @@ WINE_DEFAULT_DEBUG_CHANNEL(asio);
 #define ASIO_MINIMUM_BUFFERSIZE     16
 #define ASIO_MAXIMUM_BUFFERSIZE     8192
 #define ASIO_PREFERRED_BUFFERSIZE   1024
+
+#define ASIO_LONG(typ, x) ({ uint64_t __long_val = (x); (typ) { .lo = (uint32_t)__long_val, .hi = (uint32_t)(__long_val >> 32) }; })
 
 /* ASIO drivers (breaking the COM specification) use the Microsoft variety of
  * thiscall calling convention which gcc is unable to produce.  These macros
@@ -181,10 +183,10 @@ typedef struct IWineASIOImpl
     ASIOCallbacks               *asio_callbacks;
     LONG                        asio_current_buffersize;
     INT                         asio_driver_state;
-    ASIOSamples                 asio_sample_position;
-    ASIOSampleRate              asio_sample_rate;
+    uint64_t                    asio_sample_position;
+    double                      asio_sample_rate;
     ASIOTime                    asio_time;
-    ASIOTimeStamp               asio_time_stamp;
+    uint64_t                    asio_time_stamp;
     LONG                        asio_version;
     bool                        asio_can_time_code;
     bool                        asio_time_info_mode;
@@ -456,14 +458,15 @@ static void pipewire_process_callback(void *data, struct spa_io_position *positi
             pw_filter_queue_buffer(chan->port, chan->buffers[0]);
     }
 
-    //This->asio_sample_position += 1;
-    This->asio_sample_position = position->clock.position;
-    This->asio_time_stamp = position->clock.nsec;
+    This->asio_sample_position = position->clock.position - position->offset;
+    //This->asio_time_stamp = position->clock.nsec;
+    // ASIO required to resort to using Windows API :(
+    This->asio_time_stamp = timeGetTime() * 1000000ULL;
 
     if (This->asio_time_info_mode) /* use the newer bufferSwitchTimeInfo method if supported */
     {
-        This->asio_time.timeInfo.samplePosition = This->asio_sample_position;
-        This->asio_time.timeInfo.systemTime = This->asio_time_stamp;
+        This->asio_time.timeInfo.samplePosition = ASIO_LONG(ASIOSamples, This->asio_sample_position);
+        This->asio_time.timeInfo.systemTime = ASIO_LONG(ASIOTimeStamp, This->asio_time_stamp);
         This->asio_time.timeInfo.sampleRate = This->asio_sample_rate;
         This->asio_time.timeInfo.flags = kSystemTimeValid | kSamplePositionValid | kSampleRateValid;
 
@@ -827,7 +830,6 @@ DEFINE_THISCALL_WRAPPER(Start,4)
 HIDDEN ASIOError STDMETHODCALLTYPE Start(LPWINEASIO iface)
 {
     IWineASIOImpl   *This = (IWineASIOImpl*)iface;
-    int             i;
 
     TRACE("iface: %p\n", iface);
 
@@ -846,19 +848,21 @@ HIDDEN ASIOError STDMETHODCALLTYPE Start(LPWINEASIO iface)
     This->asio_buffer_index =  0;
     This->asio_sample_position = 0;
 
-    This->asio_time_stamp = pw_filter_get_nsec(This->pw_filter);
+    //This->asio_time_stamp = pw_filter_get_nsec(This->pw_filter);
+    // ASIO required to resort to using Windows API :(
+    This->asio_time_stamp = timeGetTime() * 1000000ULL;
 
     if (This->asio_time_info_mode) /* use the newer bufferSwitchTimeInfo method if supported */
     {
-        This->asio_time.timeInfo.samplePosition = 0;
-        This->asio_time.timeInfo.systemTime = This->asio_time_stamp;
+        This->asio_time.timeInfo.samplePosition = ASIO_LONG(ASIOSamples, 0);
+        This->asio_time.timeInfo.systemTime = ASIO_LONG(ASIOTimeStamp, This->asio_time_stamp);
         This->asio_time.timeInfo.sampleRate = This->asio_sample_rate;
         This->asio_time.timeInfo.flags = kSystemTimeValid | kSamplePositionValid | kSampleRateValid;
 
         if (This->asio_can_time_code) /* addionally use time code if supported */
         {
             This->asio_time.timeCode.speed = 1; /* FIXME */
-            This->asio_time.timeCode.timeCodeSamples = This->asio_time_stamp;
+            This->asio_time.timeCode.timeCodeSamples = ASIO_LONG(ASIOSamples, This->asio_time_stamp);
             This->asio_time.timeCode.flags = ~(kTcValid | kTcRunning);
         }
         //This->asio_callbacks->bufferSwitchTimeInfo(&This->asio_time, This->asio_buffer_index, ASIOTrue);
@@ -933,7 +937,6 @@ DEFINE_THISCALL_WRAPPER(GetLatencies,12)
 HIDDEN ASIOError STDMETHODCALLTYPE GetLatencies(LPWINEASIO iface, LONG *inputLatency, LONG *outputLatency)
 {
     IWineASIOImpl           *This = (IWineASIOImpl*)iface;
-    jack_latency_range_t    range;
 
     if (!inputLatency || !outputLatency)
         return ASE_InvalidParameter;
@@ -947,7 +950,8 @@ HIDDEN ASIOError STDMETHODCALLTYPE GetLatencies(LPWINEASIO iface, LONG *inputLat
     *outputLatency = range.max;*/
     TRACE("iface: %p, input latency: %d, output latency: %d\n", iface, *inputLatency, *outputLatency);
 
-    return ASE_NotPresent;
+    *inputLatency = This->asio_current_buffersize;
+    *outputLatency = This->asio_current_buffersize;
     return ASE_OK;
 }
 
@@ -1107,8 +1111,8 @@ HIDDEN ASIOError STDMETHODCALLTYPE GetSamplePosition(LPWINEASIO iface, ASIOSampl
     if (!sPos || !tStamp)
         return ASE_InvalidParameter;
 
-    *tStamp = This->asio_time_stamp;
-    *sPos = This->asio_sample_position;
+    *tStamp = ASIO_LONG(ASIOTimeStamp, This->asio_time_stamp);
+    *sPos = ASIO_LONG(ASIOSamples, This->asio_sample_position);
 
     return ASE_OK;
 }
