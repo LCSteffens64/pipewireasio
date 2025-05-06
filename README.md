@@ -1,7 +1,13 @@
+## notes from atrac
+
 * ubuntu studio for rain: needed various development packages as she didn't have them
 * there was a "did you mean...?" during `make`, we didn't but we changed it anyway and it got past that step
 * couldn't get the gui to build so skipped it
 * seems to work with ableton 10 in wine 10 😎
+
+TODO:
+
+- [ ] figure out how to get past the gui build step so she can change the sample rate
 
 # PipeWireASIO
 
