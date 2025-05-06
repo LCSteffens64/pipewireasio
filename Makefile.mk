@@ -14,8 +14,9 @@ endif
 
 export wineasio_dll_MODULE = pipewireasio$(M).dll
 
-libpwasio_gui:
-	$(MAKE) -C new_gui ../build$(M)/libpwasio_gui.so
+# we could not get the gui to build, but commenting this out resulted in a working win_64 dll
+# libpwasio_gui:
+# 	$(MAKE) -C new_gui ../build$(M)/libpwasio_gui.so
 
 build$(M)/pw_helper.o: pw_helper.cpp
 	$(MAKE) -C new_gui ../build$(M)/pw_helper.o
