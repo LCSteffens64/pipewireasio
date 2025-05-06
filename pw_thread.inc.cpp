@@ -20,6 +20,8 @@ static struct spa_thread *impl_create(void *object,
 			items[i] = props->items[i];
 
 		snprintf(creator_ptr, sizeof(creator_ptr), "pointer:%p", helper->thread_creator);
+		// got a did you mean? here but forgot what it was
+		// changing to the did you mean? made it work
 		items[n_items++] = SPA_DICT_ITEM_INIT(SPA_KEY_THREAD_CREATOR,
 				creator_ptr);
 
