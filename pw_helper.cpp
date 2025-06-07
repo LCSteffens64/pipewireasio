@@ -201,7 +201,13 @@ struct Node final: Proxy {
 		// Then for updates
 		ProxyState state = ProxyState::PropsFilled;
 		while (!info_state.compare_exchange_weak(state, ProxyState::Fetching)) {
-			assert(state == ProxyState::UpdateInProgress);
+			// Unchanged, try again.
+			if (state == ProxyState::PropsFilled)
+				continue;
+			if (state != ProxyState::UpdateInProgress) {
+				std::fprintf(stderr, "[FATAL] Info state (%u) not in UpdateInProgress state\n", static_cast<unsigned>(state));
+				std::abort();
+			}
 			info_state.wait(ProxyState::UpdateInProgress);
 		}
 
