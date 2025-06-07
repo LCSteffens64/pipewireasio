@@ -1779,10 +1779,10 @@ static void get_nodes_by_name(IWineASIOImpl *This) {
     free(namebuf);
 
     if (This->current_input_node == NULL) {
-        This->current_input_node = user_pw_get_default_node(This->pw_helper, USER_PW_DEFAULT_INPUT);
+        This->current_input_node = user_pw_get_default_node(This->pw_helper, SPA_DIRECTION_INPUT);
     }
     if (This->current_output_node == NULL) {
-        This->current_output_node = user_pw_get_default_node(This->pw_helper, USER_PW_DEFAULT_OUTPUT);
+        This->current_output_node = user_pw_get_default_node(This->pw_helper, SPA_DIRECTION_OUTPUT);
     }
 }
 

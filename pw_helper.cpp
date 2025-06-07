@@ -870,7 +870,7 @@ static void wait_for_nodes_init(Helper *helper, std::mutex &mutex) {
 	}
 }
 
-struct pw_node *get_default_node(Helper *helper, DefaultNodeType type) {
+struct pw_node *get_default_node(Helper *helper, enum spa_direction direction) {
 	struct pw_node *node = nullptr;
 	helper->lock();
 	if (helper->default_nodes) {
@@ -878,9 +878,9 @@ struct pw_node *get_default_node(Helper *helper, DefaultNodeType type) {
 		nodes->mutex.lock();
 		wait_for_nodes_init(helper, nodes->mutex);
 		std::string_view name;
-		switch (type) {
-			case DefaultNodeType::Input: name = nodes->default_source; break;
-			case DefaultNodeType::Output: name = nodes->default_sink; break;
+		switch (direction) {
+			case SPA_DIRECTION_INPUT: name = nodes->default_source; break;
+			case SPA_DIRECTION_OUTPUT: name = nodes->default_sink; break;
 		}
 		node = find_node_by_name_locked(helper, name);
 		nodes->mutex.unlock();
@@ -921,8 +921,8 @@ void user_pw_destroy_helper(struct user_pw_helper *helper) {
 	destroy_helper(reinterpret_cast<Helper *>(helper));
 }
 
-struct pw_node *user_pw_get_default_node(struct user_pw_helper *helper, enum user_pw_default_node_type type) {
-	return get_default_node(reinterpret_cast<Helper *>(helper), static_cast<DefaultNodeType>(type));
+struct pw_node *user_pw_get_default_node(struct user_pw_helper *helper, enum spa_direction direction) {
+	return get_default_node(reinterpret_cast<Helper *>(helper), direction);
 }
 
 struct pw_node *user_pw_find_node_by_name(struct user_pw_helper *helper, char const *name) {
