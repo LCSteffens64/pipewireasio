@@ -114,7 +114,7 @@ struct ProxyPtr {
 	}
 
 	__always_inline Custom *custom() const {
-		return reinterpret_cast<Custom *>(pw_proxy_get_user_data(reinterpret_cast<pw_proxy *>(proxy)));
+		return reinterpret_cast<Custom *>(pw_proxy_get_user_data(reinterpret_cast<struct pw_proxy *>(proxy)));
 	}
 
 	template <typename TBase>
@@ -170,7 +170,7 @@ struct Node final: Proxy {
 		info_state.store(ProxyState::Init, std::memory_order_relaxed);
 		param_state.store(ProxyState::Init, std::memory_order_relaxed);
 		listener = {};
-		struct pw_proxy *raw_proxy = ProxyPtr<Proxy>(proxy);
+		struct pw_node *raw_proxy = proxy;
 		pw_node_add_listener(raw_proxy, &listener, &s_events, raw_proxy);
 		pw_node_enum_params(raw_proxy, 0, PW_ID_ANY, 0, ~(uint32_t)0, nullptr);
 	}
