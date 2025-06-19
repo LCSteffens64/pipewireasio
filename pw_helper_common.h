@@ -7,6 +7,8 @@
 #endif
 #endif
 
+#include <spa/utils/defs.h>
+
 #include <pthread.h>
 
 typedef int (*pw_helper_thread_creator_t)(

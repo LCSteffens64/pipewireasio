@@ -114,7 +114,7 @@ struct ProxyPtr {
 	}
 
 	__always_inline Custom *custom() const {
-		return reinterpret_cast<Custom *>(pw_proxy_get_user_data(reinterpret_cast<pw_proxy *>(proxy)));
+		return reinterpret_cast<Custom *>(pw_proxy_get_user_data(reinterpret_cast<struct pw_proxy *>(proxy)));
 	}
 
 	template <typename TBase>
@@ -170,7 +170,7 @@ struct Node final: Proxy {
 		info_state.store(ProxyState::Init, std::memory_order_relaxed);
 		param_state.store(ProxyState::Init, std::memory_order_relaxed);
 		listener = {};
-		struct pw_proxy *raw_proxy = ProxyPtr<Proxy>(proxy);
+		struct pw_node *raw_proxy = proxy;
 		pw_node_add_listener(raw_proxy, &listener, &s_events, raw_proxy);
 		pw_node_enum_params(raw_proxy, 0, PW_ID_ANY, 0, ~(uint32_t)0, nullptr);
 	}
@@ -201,7 +201,13 @@ struct Node final: Proxy {
 		// Then for updates
 		ProxyState state = ProxyState::PropsFilled;
 		while (!info_state.compare_exchange_weak(state, ProxyState::Fetching)) {
-			assert(state == ProxyState::UpdateInProgress);
+			// Unchanged, try again.
+			if (state == ProxyState::PropsFilled)
+				continue;
+			if (state != ProxyState::UpdateInProgress) {
+				std::fprintf(stderr, "[FATAL] Info state (%u) not in UpdateInProgress state\n", static_cast<unsigned>(state));
+				std::abort();
+			}
 			info_state.wait(ProxyState::UpdateInProgress);
 		}
 
@@ -864,7 +870,7 @@ static void wait_for_nodes_init(Helper *helper, std::mutex &mutex) {
 	}
 }
 
-struct pw_node *get_default_node(Helper *helper, DefaultNodeType type) {
+struct pw_node *get_default_node(Helper *helper, enum spa_direction direction) {
 	struct pw_node *node = nullptr;
 	helper->lock();
 	if (helper->default_nodes) {
@@ -872,9 +878,9 @@ struct pw_node *get_default_node(Helper *helper, DefaultNodeType type) {
 		nodes->mutex.lock();
 		wait_for_nodes_init(helper, nodes->mutex);
 		std::string_view name;
-		switch (type) {
-			case DefaultNodeType::Input: name = nodes->default_source; break;
-			case DefaultNodeType::Output: name = nodes->default_sink; break;
+		switch (direction) {
+			case SPA_DIRECTION_INPUT: name = nodes->default_source; break;
+			case SPA_DIRECTION_OUTPUT: name = nodes->default_sink; break;
 		}
 		node = find_node_by_name_locked(helper, name);
 		nodes->mutex.unlock();
@@ -915,8 +921,8 @@ void user_pw_destroy_helper(struct user_pw_helper *helper) {
 	destroy_helper(reinterpret_cast<Helper *>(helper));
 }
 
-struct pw_node *user_pw_get_default_node(struct user_pw_helper *helper, enum user_pw_default_node_type type) {
-	return get_default_node(reinterpret_cast<Helper *>(helper), static_cast<DefaultNodeType>(type));
+struct pw_node *user_pw_get_default_node(struct user_pw_helper *helper, enum spa_direction direction) {
+	return get_default_node(reinterpret_cast<Helper *>(helper), direction);
 }
 
 struct pw_node *user_pw_find_node_by_name(struct user_pw_helper *helper, char const *name) {
